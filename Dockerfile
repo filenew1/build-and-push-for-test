@@ -6,11 +6,73 @@ MAINTAINER ais
 ENV LANG C.UTF-8
 ENV LC_ALL C.UTF-8
 
+# 可通过 build-arg 覆盖 jar 名称
+ARG JAR_NAME=deepsearchweb-admin.jar
+
 # 设置工作目录
 WORKDIR /app
+
+# 安装合并/解压所需工具
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends unzip zip coreutils && \
+    rm -rf /var/lib/apt/lists/*
+
+# 把构建上下文拷贝到临时目录（这里把 repo 根目录全部拷过去，按需可改）
+COPY /jar/*.zip.* /tmp/build
+
+# 合并分片并提取 jar
+RUN set -eux; \
+    cd /tmp/build; \
+    echo "Files in build context:"; ls -al --color=never || true; \
+    # ---------- 找到分片（匹配 *.zip.*，例如 myapi.zip.001 或 zip.001） ----------
+    parts_found=0; parts=""; \
+    for f in *.zip.*; do \
+      [ -e "$f" ] || continue; \
+      parts="$parts $f"; parts_found=1; \
+    done; \
+    if [ "$parts_found" -eq 1 ]; then \
+      echo "Found split parts: $parts"; \
+      # 把 parts 列入文件并按版本顺序排序（sort -V）然后拼接
+      printf "%s\n" $parts | sort -V > /tmp/parts.list; \
+      echo "Merging in order:"; cat /tmp/parts.list; \
+      cat $(cat /tmp/parts.list) > /tmp/combined.zip; \
+      echo "Merged into /tmp/combined.zip (size: $(stat -c%s /tmp/combined.zip) bytes)"; \
+      # 尝试解压合并后的 zip（通常合并后的 zip 解压出 jar）
+      unzip -o /tmp/combined.zip -d /tmp/merged_out || true; \
+    else \
+      echo "No *.zip.* parts found, try to find single .zip or .jar in repo."; \
+      # 如果没有分片，尝试处理单个 zip
+      single_zip_found=0; \
+      for z in *.zip; do [ -e "$z" ] || continue; echo "Found single zip: $z"; unzip -o "$z" -d /tmp/merged_out || true; single_zip_found=1; break; done; \
+      if [ "$single_zip_found" -eq 0 ]; then echo "No single .zip found either."; fi; \
+    fi; \
+    # ---------- 在解压目录里找 jar ----------
+    jar_candidate=$(find /tmp/merged_out -type f -name '*.jar' -print -quit || true); \
+    if [ -n "$jar_candidate" ]; then \
+      echo "Found jar inside archive: $jar_candidate"; mv "$jar_candidate" /app/${JAR_NAME}; \
+    else \
+      # 如果没有解压出 jar，可能合并后的文件本身就是 jar（有些场景会把 jar 按二进制拆分）
+      if [ -f /tmp/combined.zip ]; then \
+        echo "/tmp/combined.zip exists — treat it as jar fallback"; mv /tmp/combined.zip /app/${JAR_NAME}; \
+      else \
+        # 最后退而求其次：查找仓库里是否已经有 .jar 文件
+        repo_jar=$(find . -maxdepth 2 -type f -name '*.jar' -print -quit || true); \
+        if [ -n "$repo_jar" ]; then \
+          echo "Found jar in repo: $repo_jar"; cp "$repo_jar" /app/${JAR_NAME}; \
+        else \
+          echo "ERROR: cannot find or assemble jar (looked for split parts, single zip, combined.zip, repo jars)." >&2; \
+          echo "Build context listing:"; ls -al; \
+          exit 1; \
+        fi; \
+      fi; \
+    fi; \
+    echo "Final artifact:"; ls -al /app || true
+    
 # 复制Maven构建产物到容器中
-COPY ./jar/deepsearchweb-admin.jar deepsearchweb-admin.jar
+COPY ./app/${JAR_NAME} ${JAR_NAME}
+
 # 暴露应用端口
 EXPOSE 8080
+
 # 启动应用
-ENTRYPOINT ["java", "-jar", "deepsearchweb-admin.jar"]
+ENTRYPOINT ["java", "-jar", "${JAR_NAME}"]
