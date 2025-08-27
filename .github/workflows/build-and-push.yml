@@ -8,7 +8,7 @@ on:
 
 env:
   IMAGE_NAME: deepsearchweb-admin      # 镜像名（不含 registry 与 namespace）
-  DOCKERFILE_PATH: ../../Dockerfile  # Dockerfile 路径（按需修改）
+  DOCKERFILE_PATH: ./Dockerfile        # Dockerfile 路径（按需修改）
 
 jobs:
   build-and-push:
