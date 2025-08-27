@@ -9,8 +9,8 @@ ENV LC_ALL C.UTF-8
 # 设置工作目录
 WORKDIR /app
 # 复制Maven构建产物到容器中
-COPY ./target/myArm-0.0.1-SNAPSHOT.jar myArm-0.0.1-SNAPSHOT.jar
+COPY ./jar/deepsearchweb-admin.jar deepsearchweb-admin.jar
 # 暴露应用端口
 EXPOSE 8080
 # 启动应用
-ENTRYPOINT ["java", "-jar", "myArm-0.0.1-SNAPSHOT.jar"]
+ENTRYPOINT ["java", "-jar", "deepsearchweb-admin.jar"]
