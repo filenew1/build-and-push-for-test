@@ -7,7 +7,7 @@ on:
       - '*v*.*.*'
 
 env:
-  IMAGE_NAME: minerU-arm      # 镜像名（不含 registry 与 namespace）
+  IMAGE_NAME: mineru-arm      # 镜像名（不含 registry 与 namespace）
   DOCKERFILE_PATH: ./Dockerfile-MinerU        # Dockerfile 路径（按需修改）
 
 jobs:
