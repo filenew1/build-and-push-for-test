@@ -1,0 +1,47 @@
+name: Build and push Docker image (multi-arch) to Alibaba ACR
+
+on:
+  push:
+    branches:
+      - main
+    # 可选：如果使用 tag 发布（推荐用 tag 控制版本），可以启用下面：
+    # tags:
+    #   - 'v*.*.*'
+
+env:
+  IMAGE_NAME: myapi
+  IMAGE_TAG: v0.0.2   # 也可改为动态值，例如从 tag 或文件读取
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU (for multi-arch emulation)
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Alibaba ACR
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ secrets.ACR_REGISTRY }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and push multi-arch image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ secrets.ACR_REGISTRY }}/${{ secrets.ACR_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            ${{ secrets.ACR_REGISTRY }}/${{ secrets.ACR_NAMESPACE }}/${{ env.IMAGE_NAME }}:latest
