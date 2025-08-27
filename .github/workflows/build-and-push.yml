@@ -7,8 +7,8 @@ on:
       - 'v*'
 
 env:
-  IMAGE_NAME: deepsearchweb-admin.jar         # 镜像名（不含 registry 与 namespace）
-  DOCKERFILE_PATH: ././jar/Dockerfile  # Dockerfile 路径（按需修改）
+  IMAGE_NAME: deepsearchweb-admin      # 镜像名（不含 registry 与 namespace）
+  DOCKERFILE_PATH: ../../Dockerfile  # Dockerfile 路径（按需修改）
 
 jobs:
   build-and-push:
@@ -49,6 +49,3 @@ jobs:
           # 可选缓存，加速后续构建（首次会慢）
           cache-from: type=registry,ref=${{ secrets.ACR_REGISTRY }}/${{ secrets.ACR_NAMESPACE }}/${{ env.IMAGE_NAME }}:buildcache
           cache-to: type=inline
-          # 若需要传构建参数（例如 JAR 文件名），可以用 build-args
-          # build-args: |
-          #   JAR_FILE=myapi.jar
