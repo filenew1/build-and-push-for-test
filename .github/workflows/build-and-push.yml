@@ -4,7 +4,7 @@ on:
   push:
     # 只有 push tag 时触发。匹配 v*，例如 v0.0.1
     tags:
-      - 'v*'
+      - '*v*.*.**'
 
 env:
   IMAGE_NAME: MinerU-ARM      # 镜像名（不含 registry 与 namespace）
