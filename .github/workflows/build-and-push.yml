@@ -7,8 +7,8 @@ on:
       - 'v*'
 
 env:
-  IMAGE_NAME: deepsearchweb-admin      # 镜像名（不含 registry 与 namespace）
-  DOCKERFILE_PATH: ./Dockerfile        # Dockerfile 路径（按需修改）
+  IMAGE_NAME: MinerU-ARM      # 镜像名（不含 registry 与 namespace）
+  DOCKERFILE_PATH: ./Dockerfile-MinerU        # Dockerfile 路径（按需修改）
 
 jobs:
   build-and-push:
