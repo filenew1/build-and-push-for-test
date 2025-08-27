@@ -1,5 +1,6 @@
 # 使用官方的OpenJDK基础镜像
-FROM openjdk:8-jdk-slim
+FROM ubuntu:20.04    
+
 # author
 MAINTAINER ais
 # 设置系统编码为UTF-8
@@ -14,11 +15,11 @@ WORKDIR /app
 
 # 安装合并/解压所需工具
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends unzip zip coreutils && \
+    apt-get install -y --no-install-recommends unzip zip coreutils openjdk-8-jdk && \
     rm -rf /var/lib/apt/lists/*
 
 # 把构建上下文拷贝到临时目录（这里把 repo 根目录全部拷过去，按需可改）
-COPY /jar/*.zip.* /tmp/build
+COPY jar/ /tmp/build/
 
 # 合并分片并提取 jar
 RUN set -eux; \
@@ -67,12 +68,8 @@ RUN set -eux; \
       fi; \
     fi; \
     echo "Final artifact:"; ls -al /app || true
-    
-# 复制Maven构建产物到容器中
-COPY ./app/${JAR_NAME} ${JAR_NAME}
 
-# 暴露应用端口
 EXPOSE 8080
 
-# 启动应用
-ENTRYPOINT ["java", "-jar", "${JAR_NAME}"]
+# 使用 env 展开（使用 sh -c）
+ENTRYPOINT ["sh", "-c", "exec java -jar /app/${JAR_NAME}"]
