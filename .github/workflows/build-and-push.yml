@@ -1,16 +1,14 @@
-name: Build and push Docker image (multi-arch) to Alibaba ACR
+name: Build & push multi-arch Docker image on tag
 
 on:
   push:
-    branches:
-      - main
-    # 可选：如果使用 tag 发布（推荐用 tag 控制版本），可以启用下面：
-    # tags:
-    #   - 'v*.*.*'
+    # 只有 push tag 时触发。匹配 v*，例如 v0.0.1
+    tags:
+      - 'v*'
 
 env:
-  IMAGE_NAME: myapi
-  IMAGE_TAG: v0.0.2   # 也可改为动态值，例如从 tag 或文件读取
+  IMAGE_NAME: deepsearchweb-admin.jar         # 镜像名（不含 registry 与 namespace）
+  DOCKERFILE_PATH: ././jar/Dockerfile  # Dockerfile 路径（按需修改）
 
 jobs:
   build-and-push:
@@ -19,29 +17,38 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Set up QEMU (for multi-arch emulation)
+      # 启用 QEMU，支持在 x86 runner 上构建 arm 镜像
+      - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
+      # 启用 buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to Alibaba ACR
+      # 登录阿里云 ACR（从 Secrets 读取）
+      - name: Log in to Alibaba Cloud Container Registry
         uses: docker/login-action@v2
         with:
-          registry: ${{ secrets.ACR_REGISTRY }}
-          username: ${{ secrets.ACR_USERNAME }}
-          password: ${{ secrets.ACR_PASSWORD }}
+          registry: ${{ secrets.ACR_REGISTRY }}      # e.g. registry.cn-hangzhou.aliyuncs.com
+          username: ${{ secrets.ACR_USERNAME }}      # 通常为 AccessKeyId
+          password: ${{ secrets.ACR_PASSWORD }}      # 通常为 AccessKeySecret
 
       - name: Build and push multi-arch image
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: ./Dockerfile
+          file: ${{ env.DOCKERFILE_PATH }}
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ secrets.ACR_REGISTRY }}/${{ secrets.ACR_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            ${{ secrets.ACR_REGISTRY }}/${{ secrets.ACR_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
             ${{ secrets.ACR_REGISTRY }}/${{ secrets.ACR_NAMESPACE }}/${{ env.IMAGE_NAME }}:latest
+          # 可选缓存，加速后续构建（首次会慢）
+          cache-from: type=registry,ref=${{ secrets.ACR_REGISTRY }}/${{ secrets.ACR_NAMESPACE }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=inline
+          # 若需要传构建参数（例如 JAR 文件名），可以用 build-args
+          # build-args: |
+          #   JAR_FILE=myapi.jar
