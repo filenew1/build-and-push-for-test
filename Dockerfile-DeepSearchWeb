@@ -42,7 +42,7 @@ RUN set -eux; \
     echo "工作目录文件清单如下:"; ls -al /app || true \
 
     # ---------- 显示jar包的md5值 ----------    
-    echo "工作目录文件清单如下:"; md5sum /app/${JAR_NAME}
+    echo "jar包的Md5值为:"; md5sum /app/${JAR_NAME}
 
 EXPOSE 9002
 
