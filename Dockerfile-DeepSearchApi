@@ -1,5 +1,5 @@
 # 使用官方的OpenJDK基础镜像
-FROM openjdk:17-jre-slim
+FROM openjdk:17-jdk-slim
 
 # author
 LABEL maintainer="ais" \
