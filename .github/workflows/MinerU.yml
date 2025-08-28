@@ -1,4 +1,4 @@
-name: Build & push multi-arch Docker image on tag
+name: MinerU-Build-Push
 
 on:
   push:
