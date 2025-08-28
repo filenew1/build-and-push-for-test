@@ -1,4 +1,4 @@
-name: DeepSearchWeb
+name: DeepSearchWeb-Build-Push
 
 on:
   push:
