@@ -1,4 +1,4 @@
-name: Build & push multi-arch Docker image on tag
+name: DeepSearchApi-Build-Push
 
 on:
   push:
