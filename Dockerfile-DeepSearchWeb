@@ -47,11 +47,11 @@ RUN set -eux; \
     # ---------- 显示jar包的md5值 ----------    
     echo "jar包的Md5值为:"; md5sum /app/${JAR_NAME}
 
-EXPOSE 9002
+EXPOSE 9005
 
 ENTRYPOINT ["sh", "-c", "exec java -jar /app/$JAR_NAME"]
 
 # 简单健康检查
 HEALTHCHECK --interval=60s --timeout=3s --retries=3 \
-  CMD wget -qO- --no-check-certificate http://127.0.0.1:9002/ || exit 1
+  CMD wget -qO- --no-check-certificate http://127.0.0.1:9005/ || exit 1
 
