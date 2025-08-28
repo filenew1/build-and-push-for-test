@@ -4,11 +4,11 @@ on:
   push:
     # 只有 push tag 时触发。匹配 v*，例如 v0.0.1
     tags:
-      - '*v*.*.*'
+      - '*deepsearchapi*'
 
 env:
-  IMAGE_NAME: mineru-arm      # 镜像名（不含 registry 与 namespace）
-  DOCKERFILE_PATH: ./Dockerfile-MinerU        # Dockerfile 路径（按需修改）
+  IMAGE_NAME: deepsearchapi                          # 镜像名（不含 registry 与 namespace）
+  DOCKERFILE_PATH: ./Dockerfile-DeepSearchApi        # Dockerfile 路径（按需修改）
 
 jobs:
   build-and-push:
