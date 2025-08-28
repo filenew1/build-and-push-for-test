@@ -1,5 +1,5 @@
 # 使用官方的OpenJDK基础镜像
-FROM ubuntu:20.04    
+FROM ubuntu:latest  
 
 # author
 MAINTAINER ais
@@ -8,7 +8,7 @@ ENV LANG C.UTF-8
 ENV LC_ALL C.UTF-8
 
 # 可通过 build-arg 覆盖 jar 名称
-ARG JAR_NAME=deepsearchweb-admin.jar
+ARG JAR_NAME=deepsearchapi.jar
 
 # 设置工作目录
 WORKDIR /app
@@ -19,7 +19,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # 把构建上下文拷贝到临时目录（这里把 repo 根目录全部拷过去，按需可改）
-COPY jar/ /tmp/build/
+COPY deepsearchapi/ /tmp/build/
 
 # 合并分片并提取 jar
 RUN set -eux; \
@@ -69,7 +69,7 @@ RUN set -eux; \
     fi; \
     echo "Final artifact:"; ls -al /app || true
 
-EXPOSE 8080
+EXPOSE 9002
 
 # 使用 env 展开（使用 sh -c）
 ENTRYPOINT ["sh", "-c", "exec java -jar /app/${JAR_NAME}"]
