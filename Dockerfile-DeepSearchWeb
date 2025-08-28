@@ -39,7 +39,10 @@ RUN set -eux; \
     mv /tmp/merged_out/*.jar /app/${JAR_NAME}; \
 
     # ---------- 显示工作目录下的文件清单 ----------    
-    echo "工作目录文件清单如下:"; ls -al /app || true
+    echo "工作目录文件清单如下:"; ls -al /app || true \
+
+    # ---------- 显示jar包的md5值 ----------    
+    echo "工作目录文件清单如下:"; md5sum /app/${JAR_NAME}
 
 EXPOSE 9002
 
