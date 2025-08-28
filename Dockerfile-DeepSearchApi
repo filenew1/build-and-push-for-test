@@ -22,6 +22,9 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*  \
     && rm -rf /tmp/build/
 
+# 刷新缓存
+RUN fc-cache -fv
+
 # 把构建上下文拷贝到临时目录（这里把 repo 根目录全部拷过去，按需可改）
 COPY deepsearchapi/ /tmp/build/
 
