@@ -16,10 +16,10 @@ WORKDIR /app
 
 # 安装合并/解压所需工具
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends unzip zip && \
-    libfreetype6 libfontconfig1 libxrender1 libxext6 fonts-dejavu-core && \
-    rm -rf /var/lib/apt/lists/*  && \
-    rm -rf /tmp/build/
+    apt-get install -y --no-install-recommends unzip zip  \
+      libfreetype6 libfontconfig1 libxrender1 libxext6 fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*  \
+    && rm -rf /tmp/build/
 
 # 把构建上下文拷贝到临时目录（这里把 repo 根目录全部拷过去，按需可改）
 COPY deepsearchweb/*.zip.* /tmp/build/
