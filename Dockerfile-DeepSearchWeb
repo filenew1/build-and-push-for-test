@@ -1,5 +1,5 @@
 # 使用官方的OpenJDK基础镜像
-FROM openjdk-8-jdk
+FROM openjdk:8-jre-slim
 
 # author
 LABEL maintainer="ais" \
