@@ -17,7 +17,8 @@ WORKDIR /app
 # 安装合并/解压所需工具
 RUN apt-get update && \
     apt-get install -y --no-install-recommends unzip zip  \
-      libfreetype6 libfontconfig1 libxrender1 libxext6 fonts-dejavu-core \
+      fontconfig libfreetype6 libfontconfig1 libxrender1 libxext6 \
+      ttf-wqy-zenhei ttf-wqy-microhei fonts-arphic-uming fonts-arphic-ukai fonts-noto-cjk \
     && rm -rf /var/lib/apt/lists/*  \
     && rm -rf /tmp/build/
 
