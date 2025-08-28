@@ -46,12 +46,6 @@ RUN set -eux; \
     # ---------- 显示jar包的md5值 ----------    
     echo "jar包的Md5值为:"; md5sum /app/${JAR_NAME}
 
-# 创建非 root 用户并切换
-RUN groupadd -r deepsearch && useradd -r -g deepsearch deepsearch \
-    && chown -R deepsearch:deepsearch /app
-
-USER deepsearch
-
 EXPOSE 9002
 
 ENTRYPOINT ["sh", "-c", "exec java -jar /app/$JAR_NAME"]
