@@ -24,6 +24,8 @@ RUN apt-get update && \
 
 # 复制公司/自有字体
 COPY fonts/*.ttf /usr/share/fonts/truetype/custom/
+COPY fonts/*.otf /usr/share/fonts/truetype/custom/
+COPY fonts/*.fon /usr/share/fonts/truetype/custom/
 
 # 刷新缓存
 RUN fc-cache -fv
