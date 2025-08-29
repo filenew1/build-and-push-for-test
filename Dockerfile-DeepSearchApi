@@ -22,6 +22,9 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*  \
     && rm -rf /tmp/build/
 
+# 复制公司/自有字体
+COPY fonts/*.ttf /usr/share/fonts/truetype/custom/
+
 # 刷新缓存
 RUN fc-cache -fv
 
