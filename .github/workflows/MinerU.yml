@@ -1,0 +1,81 @@
+name: MinerU-Build-Push
+
+on:
+  push:
+    # 只有 push tag 时触发。匹配 v*，例如 v0.0.1
+    tags:
+      - '*mineru*'
+
+env:
+  IMAGE_NAME: mineru      # 镜像名（不含 registry 与 namespace）
+  DOCKERFILE_PATH: ./Dockerfile-MinerU        # Dockerfile 路径（按需修改）
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Before freeing up disk space
+        run: |
+          echo "Before freeing up disk space"
+          echo "=============================================================================="
+          df -hT
+          echo "=============================================================================="
+          # 增加可用磁盘空间
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+  
+          root-reserve-mb: 2048
+          swap-size-mb: 128
+          remove-dotnet: 'true'
+          remove-haskell: 'true'
+          # 如果空间还是不够用，可以把以下开启，清理出更多空间
+          # remove-android: 'true'
+          # remove-codeql: 'true'
+          build-mount-path: '/var/lib/docker/'
+  
+      - name: Restart docker
+        run: sudo service docker restart
+  
+      - name: Free up disk space complete
+        run: |
+          echo "Free up disk space complete"
+          echo "=============================================================================="
+          df -hT
+          echo "=============================================================================="
+          
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # 启用 QEMU，支持在 x86 runner 上构建 arm 镜像
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      # 启用 buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 登录阿里云 ACR（从 Secrets 读取）
+      - name: Log in to Alibaba Cloud Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ secrets.ACR_REGISTRY }}      # e.g. registry.cn-hangzhou.aliyuncs.com
+          username: ${{ secrets.ACR_USERNAME }}      # 通常为 AccessKeyId
+          password: ${{ secrets.ACR_PASSWORD }}      # 通常为 AccessKeySecret
+
+      - name: Build and push multi-arch image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ${{ env.DOCKERFILE_PATH }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ secrets.ACR_REGISTRY }}/${{ secrets.ACR_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+            ${{ secrets.ACR_REGISTRY }}/${{ secrets.ACR_NAMESPACE }}/${{ env.IMAGE_NAME }}:latest
+          # 可选缓存，加速后续构建（首次会慢）
+          cache-from: type=registry,ref=${{ secrets.ACR_REGISTRY }}/${{ secrets.ACR_NAMESPACE }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=inline

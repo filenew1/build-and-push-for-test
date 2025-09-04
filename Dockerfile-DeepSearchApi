@@ -1,0 +1,65 @@
+# 使用官方的OpenJDK基础镜像
+FROM openjdk:17-jdk-slim
+
+# author
+LABEL maintainer="ais" \
+      description="Run deepsearch web jar"
+
+# 设置系统编码为UTF-8
+ARG JAR_NAME=deepsearchapi.jar
+ENV JAR_NAME=${JAR_NAME}
+ENV LANG C.UTF-8
+ENV LC_ALL C.UTF-8
+
+# 设置工作目录
+WORKDIR /app
+
+# 安装合并/解压所需工具
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends unzip zip  \
+      fontconfig libfreetype6 libfontconfig1 libxrender1 libxext6 \
+      ttf-wqy-zenhei ttf-wqy-microhei fonts-arphic-uming fonts-arphic-ukai fonts-noto-cjk \
+    && rm -rf /var/lib/apt/lists/*  \
+    && rm -rf /tmp/build/
+
+# 复制公司/自有字体
+COPY fonts/*.ttf /usr/share/fonts/truetype/custom/
+COPY fonts/*.otf /usr/share/fonts/truetype/custom/
+COPY fonts/*.fon /usr/share/fonts/truetype/custom/
+
+# 刷新缓存
+RUN fc-cache -fv
+
+# 把构建上下文拷贝到临时目录（这里把 repo 根目录全部拷过去，按需可改）
+COPY deepsearchapi/ /tmp/build/
+
+# 合并分片并提取 jar
+RUN set -eux; \
+    cd /tmp/build; \
+    echo "Files in build context:"; ls -al --color=never || true; \
+
+    # ---------- 准备合并分片（匹配 *.zip.*，例如 myapi.zip.001 或 zip.001） ----------
+    cat $(ls -v *.zip.*) > /tmp/combined.zip; \
+
+    # ---------- 输出文件合并后的大小 ----------
+    echo "合并后的文件大小为： (size: $(stat -c%s /tmp/combined.zip) bytes)"; \
+
+    # ---------- 解压合并后的文件 ----------
+    unzip -o /tmp/combined.zip -d /tmp/merged_out || true; \
+
+    # ---------- 移动jar文件到工作目录 ----------
+    mv /tmp/merged_out/*.jar /app/${JAR_NAME}; \
+
+    # ---------- 显示工作目录下的文件清单 ----------    
+    echo "工作目录文件清单如下:"; ls -al /app || true \
+
+    # ---------- 显示jar包的md5值 ----------    
+    echo "jar包的Md5值为:"; md5sum /app/${JAR_NAME}
+
+EXPOSE 9002
+
+ENTRYPOINT ["sh", "-c", "exec java -jar /app/$JAR_NAME"]
+
+# 简单健康检查
+HEALTHCHECK --interval=60s --timeout=3s --retries=3 \
+  CMD wget -qO- --no-check-certificate http://127.0.0.1:9002/ || exit 1
