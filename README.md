@@ -1,7 +1,7 @@
 # myself-build-and-push
 
 #### 介绍
-12312313123123123123
+这是自己用来打包docker镜像的仓库，主要利用GitHub的Action实现。
 
 #### 软件架构
 软件架构说明

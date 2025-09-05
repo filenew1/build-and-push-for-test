@@ -1,0 +1,30 @@
+# 基于openjdk:17-jdk-slim作为基础镜像
+FROM openjdk:17-jdk-slim
+
+# 维护者信息
+LABEL maintainer="huxl"
+LABEL description="基于openjdk17加入自己的字体"
+
+# 安装所需工具
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      fontconfig libfreetype6 libfontconfig1 libxrender1 libxext6 \
+      ttf-wqy-zenhei ttf-wqy-microhei fonts-arphic-uming fonts-arphic-ukai fonts-noto-cjk \
+    && rm -rf /var/lib/apt/lists/*
+
+# 创建字体目录
+RUN mkdir -p /usr/share/fonts/custom
+
+# 将本地字体文件复制到镜像中
+COPY fonts/* /usr/share/fonts/custom/
+
+# 更新字体缓存，使系统识别新安装的字体
+RUN fc-cache -f -v
+
+# 验证字体是否安装成功（可选，用于构建时检查）
+RUN fc-list | grep "custom" || echo "Warning: Custom fonts not found"
+
+# 设置工作目录
+WORKDIR /app
+
+    
