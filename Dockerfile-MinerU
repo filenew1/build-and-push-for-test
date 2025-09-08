@@ -1,3 +1,4 @@
+# 使用最新版本试一下
 FROM ubuntu:latest
 
 # Install libgl for opencv support & Noto fonts for Chinese characters
