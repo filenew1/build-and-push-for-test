@@ -1,5 +1,5 @@
 # 使用最新版本试一下
-FROM ubuntu:latest
+FROM ubuntu:22.04
 
 # Install libgl for opencv support & Noto fonts for Chinese characters
 RUN apt-get update && \
