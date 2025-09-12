@@ -1,0 +1,215 @@
+services:
+  # Elasticsearch服务
+  elasticsearch:
+    image: registry.cn-shenzhen.aliyuncs.com/losting-dify/linux_arm64_elasticsearch:9.0.2
+    container_name: deepsearch_elasticsearch
+    environment:
+      - ES_JAVA_OPTS=-Xms1024m -Xmx1024m # 启动内存
+      - discovery.type=single-node # 集群名称
+      - xpack.security.enabled=true # 启动认证
+      - ELASTIC_PASSWORD=3mhR=q9937rqSBsIsqdv # 密码
+      - xpack.security.http.ssl.enabled=false # 关闭https
+    ports:
+      - "19200:9200"
+      - "19300:9300"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    networks:
+      - deepsearchapi-network
+    healthcheck:
+      test:
+        ["CMD", "curl", "-s", "http://localhost:9200/_cluster/health?pretty"]
+      interval: 30s
+      timeout: 10s
+      retries: 50
+
+  # MinIO服务
+  minio:
+    image: registry.cn-shenzhen.aliyuncs.com/losting-dify/linux_arm64_minio:RELEASE.2025-05-24T17-08-30Z
+    container_name: deepsearch_minio
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=3mhR=q9937rqSBsIsqdv
+    ports:
+      - "19000:9000"
+      - "19001:9001"
+    volumes:
+      - minio-data:/data
+    networks:
+      - deepsearchapi-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # MySQL服务
+  mysql:
+    image: registry.cn-shenzhen.aliyuncs.com/losting-dify/linux_arm64_mysql:8.0.29
+    container_name: deepsearch_mysql
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      - MYSQL_ROOT_PASSWORD=3mhR=q9937rqSBsIsqdv
+      - MYSQL_DATABASE=deepsearch
+      - MYSQL_USER=deepsearch
+      - MYSQL_PASSWORD=3mhR=q9937rqSBsIsqdv
+    ports:
+      - "13306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./sql:/docker-entrypoint-initdb.d
+    networks:
+      - deepsearchapi-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+  # mineru 接口
+  mineru-api:
+    image: registry.cn-shenzhen.aliyuncs.com/self-jar/mineru:mineru-v2.1.11
+    container_name: deepsearch_mineru-api
+    restart: always
+    ports:
+      - 9003:9003
+    volumes:
+      - mineru-api-data:/sgl-workspace
+    environment:
+      MINERU_MODEL_SOURCE: local
+    entrypoint: mineru-api
+    command:
+      --host 0.0.0.0
+      --port 9003
+    ulimits:
+      memlock: -1
+      stack: 67108864
+    networks:
+      - deepsearchapi-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9003/docs || exit 1"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # deepsearchapi应用服务
+  deepsearchapi:
+    image: deepsearchapi:deepsearchapi-v0.0.2
+    container_name: deepsearch_deepsearchapi
+    ports:
+      - "9002:9002"
+    volumes:
+      - deepsearchapi-data:/data
+    environment:
+      - JAVA_OPTS=-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8  # 设置JVM编码
+      # 基础配置
+      - DEEPSEARCHAPI_PROFILE=/data/deepsearchapi/uploadPath
+      - SERVER_SERVLET_CONTENT_PATH=/operApi
+      - LOGGING_LEVEL_DEEPSEARCHAPI=debug
+      - LOGGING_LEVEL_SPRINGFRAMEWORK=warn
+      # 模型配置
+      - AI_OPENAI_BASE_URL=http://10.76.43.82:9017/modelgateway/compatible-model
+      - AI_OPENAI_API_KEY=sk-Zpa8HWKlw7zPGmAC0463887f44724a2b922cA8Af617bE7D8
+      - AI_OPENAI_EMBEDDING_BASE_URL=https://api.fgw.sz.gov.cn:9016/modelApi/compatible-mode
+      - AI_OPENAI_EMBEDDING_PATH=/v1/embeddings
+      - AI_OPENAI_EMBEDDING_NAME=bge-m3
+      - AI_OPENAI_EMBEDDING_KEY=sk-d305deba694aaaf2c7423a9932796895
+      - AI_OPENAI_CHAT_BASE_URL=http://10.76.43.82:9017/modelgateway/compatible-model
+      - AI_OPENAI_CHAT_PATH=/v1/chat/completions
+      - AI_OPENAI_CHAT_NAME=Qwen3-235B-A22B
+      - AI_OPENAI_CHAT_KEY=sk-Zpa8HWKlw7zPGmAC0463887f44724a2b922cA8Af617bE7D8
+      - AI_OPENAI_CHAT_READ_TIMEOUT=600
+      - AI_OPENAI_CHAT_CONNECT_TIMEOUT=600
+      # 解析配置
+      - DOCUMENT_PARSER_DEFAULT=local-mineru
+      - LOCAL_MINERU_API_KEY=your_mineru_api_key
+      - LOCAL_MINERU_ENDPOINT=http://mineru-api:9003/file_parse
+      - LOCAL_MINERU_TIMEOUT=1800000
+      - LOCAL_MINERU_RETRY_SIZE=3
+      - MINERU_API_KEY=your_mineru_api_key
+      - MINERU_ENDPOINT=https://test.fgw.sz.gov.cn:9018/modelApiTest/curag/model/pdf2markdown
+      - MINERU_TIMEOUT=1800000
+      - MINERU_RETRY_SIZE=3
+      - OCR_API_KEY=your_ocr_api_key
+      - OCR_ENDPOINT=https://api.ocr.com/parse
+      - OCR_TIMEOUT=1800000
+      - OCR_RETRY_SIZE=3
+      # 任务调度配置
+      - SLICE_ROW_SIZE=1000
+      - SLICE_MAXIMUM_CONCURRENCY=3
+      - TO_MARKDOWN_TIMEOUT=1800000
+      - TO_MARKDOWN_MAXIMUM_CONCURRENCY=3
+      - ATOMIC_INSIGHT_TIMEOUT=1800000
+      - ATOMIC_INSIGHT_RETRY_SIZE=3
+      - ATOMIC_INSIGHT_MAXIMUM_CONCURRENCY=6
+      - ADVANCED_CONCEPT_TIMEOUT=1800000
+      - ADVANCED_CONCEPT_RETRY_SIZE=3
+      - ADVANCED_CONCEPT_MAXIMUM_CONCURRENCY=6
+      - SUMMARY_TIMEOUT:1800000
+      - SUMMARY_RETRY_SIZE=3
+      - SUMMARY_MAXIMUM_CONCURRENCY=6
+      # es配置
+      - SPRING_ELASTICSEARCH_REST_URIS=elasticsearch:9200
+      - SPRING_ELASTICSEARCH_USERNAME=elastic
+      - SPRING_ELASTICSEARCH_PASSWORD=3mhR=q9937rqSBsIsqdv
+      # minio配置
+      - MINIO_ENDPOINT=http://minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=3mhR=q9937rqSBsIsqdv
+      - MINIO_DEFAULT_BUCKET_NAME=public
+      # 数据库配置
+      - SPRING_DATASOURCE_DRIVER_NAME=com.mysql.cj.jdbc.Driver
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/deepsearch?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
+      - SPRING_DATASOURCE_USERNAME=deepsearch
+      - SPRING_DATASOURCE_PASSWORD=3mhR=q9937rqSBsIsqdv
+    depends_on:
+      mysql:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - deepsearchapi-network
+
+  # deepsearchweb应用服务
+  deepsearchweb:
+    image: registry.cn-shenzhen.aliyuncs.com/self-jar/deepsearchweb:deepsearchweb-v0.0.1
+    container_name: deepsearch_deepsearchweb
+    ports:
+      - "9005:9005"
+    volumes:
+      - deepsearchweb-data:/data
+    environment:
+      - JAVA_OPTS=-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8  # 设置JVM编码
+      # 基础配置
+      - RUOYI_DEMO_ENABLED=false
+      - RUOYI_PROFILE=/data/deepsearchweb/uploadPath
+      - RUOYI_ADDRESS_ENABLED=true
+      - SERVER_SERVLET_CONTENT_PATH=/fastai/deepsearchweb
+      - LOGGING_LEVEL_DEEPSEARCHAPI=debug
+      - LOGGING_LEVEL_SPRINGFRAMEWORK=warn
+      # 数据库配置
+      - SPRING_DATASOURCE_DRIVER_NAME=com.mysql.cj.jdbc.Driver
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/deepsearch?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
+      - SPRING_DATASOURCE_USERNAME=deepsearch
+      - SPRING_DATASOURCE_PASSWORD=3mhR=q9937rqSBsIsqdv
+      # deepsearchapi配置
+      - DEEPSEARCHAPI_DISTILLAPIURL=http://deepsearchapi:9002/operApi/attachment/distillDocument
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - deepsearchapi-network
+
+networks:
+  deepsearchapi-network:
+    driver: bridge
+
+volumes:
+  es-data:
+  minio-data:
+  mysql-data:
+  mineru-api-data:
+  deepsearchapi-data:
+  deepsearchweb-data:
